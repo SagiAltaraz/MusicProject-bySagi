@@ -36,7 +36,7 @@ function SongCard({ song }) {
     const url = `http://localhost:3000/downloadSong?videoId=${encodeURIComponent(videoId)}&title=${encodeURIComponent(title)}`;
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", ""); // Let backend set filename
+    link.setAttribute("download", ""); 
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
