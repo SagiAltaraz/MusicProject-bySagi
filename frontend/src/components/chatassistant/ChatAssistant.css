@@ -5,13 +5,13 @@
 
 .chat-assistant {
   position: fixed;
-  bottom: 1rem;
+  bottom: 110px;
   right: 1rem;
-  z-index: 1000;
+  z-index: 1000; /* Above other components */
 }
 
 .chat-toggle-button {
-  background: linear-gradient(90deg, #ff6f61, #ff9f43);
+  background: #ff6f61;
   color: #ffffff;
   border: none;
   border-radius: 50%;
@@ -19,13 +19,13 @@
   height: 3rem;
   font-size: 1.5rem;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  transition: background 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 .chat-toggle-button:hover {
-  background: linear-gradient(90deg, #ff9f43, #ff6f61);
-  transform: scale(1.05);
+  background: #ff9f43;
+  transform: scale(1.1);
 }
 
 .chat-container {
@@ -36,7 +36,7 @@
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
-  transition: transform 0.3s ease;
+  transition: box-shadow 0.3s ease;
 }
 
 .chat-container:hover {
@@ -44,7 +44,7 @@
 }
 
 .chat-header {
-  background: linear-gradient(90deg, #ff6f61, #ff9f43);
+  background: #ff6f61;
   color: #ffffff;
   padding: 0.75rem;
   border-top-left-radius: 8px;
@@ -107,6 +107,21 @@
   font-size: 0.9rem;
 }
 
+.search-button {
+  background: #ff6f61;
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.search-button:hover {
+  background: #ff9f43;
+}
+
 .chat-input-container {
   padding: 0.75rem;
   border-top: 1px solid #4a4a4a;
@@ -126,10 +141,14 @@
 
 .chat-input:focus {
   border-color: #ff6f61;
-  box-shadow: 0 0 0 2px rgba(255, 111, 97, 0.3);
 }
 
 @media (max-width: 480px) {
+  .chat-assistant {
+    top: 65px; /* Slightly less margin on smaller screens */
+    right: 0.5rem;
+  }
+
   .chat-container {
     width: 16rem;
     height: 20rem;

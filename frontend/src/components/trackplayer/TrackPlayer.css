@@ -1,0 +1,242 @@
+* {
+    box-sizing: border-box;
+    font-family: "Poppins", sans-serif;
+  }
+  
+  .track-player-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100px;
+    background: #2a2a2a;
+    border-top: 1px solid #4a4a4a;
+    padding: 0.5rem 1rem;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 150;
+  }
+  
+  .player-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 200px;
+  }
+  
+  .track-icon {
+    color: #ff6f61;
+    font-size: 1.2rem;
+  }
+  
+  .track-title {
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+  }
+  
+  .player-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    margin: 0 20px;
+  }
+  
+  .player-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 8px;
+  }
+  
+  .control-button {
+    background: linear-gradient(90deg, #ff6f61, #ff9f43);
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    color: #ffffff;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .control-button:hover {
+    transform: scale(1.1);
+  }
+  
+  .control-button.play-stop {
+    width: 36px;
+    height: 36px;
+    font-size: 1.2rem;
+  }
+  
+  .control-button.secondary {
+    background: #4a4a6a;
+  }
+  
+  .control-button.secondary:hover {
+    background: #5a5a8a;
+  }
+  
+  .progress-bar {
+    width: 100%;
+    max-width: 400px;
+    height: 4px;
+    background-color: #535353;
+    border-radius: 2px;
+    appearance: none;
+    cursor: pointer;
+  }
+  
+  .progress-bar::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    background-color: #ff6f61;
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
+  }
+  
+  .progress-bar::-webkit-slider-thumb:hover {
+    background-color: #ff9f43;
+  }
+  
+  .progress-bar::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background-color: #ff6f61;
+    border-radius: 50%;
+    border: none;
+    transition: background-color 0.2s ease;
+  }
+  
+  .progress-bar::-moz-range-thumb:hover {
+    background-color: #ff9f43;
+  }
+  
+  .player-right {
+    display: flex;
+    align-items: center;
+    min-width: 150px;
+    justify-content: flex-end;
+  }
+  
+  .volume-icon {
+    color: #ffffff;
+    font-size: 1rem;
+    margin-right: 0.5rem;
+  }
+  
+  .volume-slider {
+    width: 80px;
+    height: 4px;
+    background-color: #535353;
+    border-radius: 2px;
+    appearance: none;
+    cursor: pointer;
+  }
+  
+  .volume-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    background-color: #ff6f61;
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
+  }
+  
+  .volume-slider::-webkit-slider-thumb:hover {
+    background-color: #ff9f43;
+  }
+  
+  .volume-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background-color: #ff6f61;
+    border-radius: 50%;
+    border: none;
+    transition: background-color 0.2s ease;
+  }
+  
+  .volume-slider::-moz-range-thumb:hover {
+    background-color: #ff9f43;
+  }
+  
+  @media (max-width: 768px) {
+    .track-player-container {
+      height: 80px;
+      padding: 0.5rem;
+    }
+  
+    .player-left,
+    .player-right {
+      min-width: auto;
+    }
+  
+    .track-title {
+      font-size: 0.8rem;
+      max-width: 150px;
+    }
+  
+    .player-center {
+      margin: 0 10px;
+    }
+  
+    .control-button {
+      width: 25px;
+      height: 25px;
+      font-size: 0.9rem;
+    }
+  
+    .control-button.play-stop {
+      width: 30px;
+      height: 30px;
+      font-size: 1rem;
+    }
+  
+    .progress-bar {
+      max-width: 100%;
+    }
+  
+    .volume-slider {
+      width: 60px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .track-player-container {
+      flex-direction: column;
+      height: auto;
+      padding: 0.5rem;
+      gap: 8px;
+    }
+  
+    .player-left,
+    .player-right {
+      justify-content: center;
+      width: 100%;
+    }
+  
+    .player-center {
+      width: 100%;
+      margin: 0;
+    }
+  
+    .track-title {
+      max-width: 100%;
+      text-align: center;
+    }
+  }
