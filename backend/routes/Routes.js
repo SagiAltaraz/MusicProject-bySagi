@@ -1,15 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const searchSongController = require('../controllers/searchsong');
-const downloadSongController = require('../controllers/download');
+const { searchOnYouTube } = require('../controllers/searchsong');
+const { downloadFromYoutube } = require('../controllers/download');
+const {askFromGemini} = require('../controllers/chatassistant');
 
+router.get('/searchSongs' , searchOnYouTube);
 
-router.get('/searchSongs',(req, res) => {
-   searchSongController.searchOnYouTube(req, res);
-});
+router.get('/downloadSong', downloadFromYoutube);
 
-router.get('/downloadSong', (req, res) => {
-   downloadSongController.downloadFromYoutube(req, res);
-});
+router.post('/askAI', askFromGemini);
 
 module.exports = router;
