@@ -1,0 +1,20 @@
+.app-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: #000; /* Match homepage background */
+  }
+  
+  .main-content {
+    display: flex;
+    flex: 1;
+    margin-top: 60px; /* Match header height */
+    margin-bottom: 100px; /* Space for TrackPlayer */
+    overflow: hidden; /* Prevent double scrollbars */
+  }
+  
+  @media (max-width: 480px) {
+    .main-content {
+      flex-direction: column;
+    }
+  }
