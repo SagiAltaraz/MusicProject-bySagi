@@ -25,7 +25,7 @@ const Library = ({ setSearchResults }) => {
     setIsLoading(true);
     try {
       const searchQuery = `${genre} music`;
-      const { data } = await axios.get('http://localhost:3000/searchSongs', {
+      const { data } = await axios.get('http://localhost:3035/searchSongs', {
         params: { searchQuery }
       });
       const results = data.items || [];

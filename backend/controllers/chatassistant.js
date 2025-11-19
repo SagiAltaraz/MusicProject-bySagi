@@ -1,28 +1,38 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { OpenAI } = require("openai");
 const dotenv = require("dotenv");
 
-dotenv.config({ path: "/Applications/code-learning/MusicProject/backend/.env" });
-const genAI = new GoogleGenerativeAI(process.env.GeminiAPI)
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+dotenv.config(); // טען את .env
 
-const askFromGemini = async (req, res) => { 
-    const { prompt } = req.body;
-    if (!prompt) {
-        return res.status(400).json({ error: "Search query is required" });
-    }
-    try {
-        const result = await model.generateContent(prompt);
-        const response = result.response.text()
-        return res.json({ response });
-    } catch (error) {
-        console.error("Error with Gemini API:", error);
-        res.status(500).json({ error: "An error occurred while processing your request" });
-    }
+if (!process.env.OPENAI_API_KEY) {
+  console.error("Missing OPENAI_API_KEY in backend .env");
 }
 
-module.exports = {askFromGemini};
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+const askFromOpenAI = async (req, res) => {
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ error: "Prompt is required" });
+  
+    try {
+        const completion = await client.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: "You are a helpful music assistant." },
+            { role: "user", content: prompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 300
+        });
+      
+        const responseText = completion.choices?.[0]?.message?.content || "No response";
+        res.json({ response: responseText });
+      
+      } catch (error) {
+        console.error("OpenAI error details:", error.response?.data || error.message);
+        res.status(500).json({ error: "Error calling OpenAI API" });
+      }
+      
+  };
+  
 
-
-
-
+module.exports = { askFromOpenAI };

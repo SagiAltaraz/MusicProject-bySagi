@@ -20,9 +20,10 @@ const ChatAssistant = ({ setSearchResults }) => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3000/askAI', {
-        prompt: input
-      });
+      const response = await axios.post('http://localhost:3035/askAI', 
+        { prompt: input }, 
+        { headers: { 'Content-Type': 'application/json' } }
+      );
       const result = response.data.response;
       setMessages(prev => [...prev, { sender: 'ai', text: result }]);
       setLastAIResponse(result);
@@ -50,7 +51,7 @@ const ChatAssistant = ({ setSearchResults }) => {
     try {
       const searchQuery = lastPrompt; // just use the prompt directly
   
-      const response = await axios.get('http://localhost:3000/searchSongs', {
+      const response = await axios.get('http://localhost:3035/searchSongs', { 
         params: { searchQuery }
       });
   

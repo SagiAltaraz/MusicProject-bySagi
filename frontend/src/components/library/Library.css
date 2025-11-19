@@ -27,6 +27,8 @@
     -webkit-text-fill-color: transparent;
   }
   
+  
+  
   .genre-list {
     list-style: none;
     padding: 0;
@@ -36,10 +38,10 @@
   .genre-item {
     color: #ffffff;
     font-size: 0.9rem;
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 0.75rem;
     cursor: pointer;
     border-radius: 5px;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.2s ease, transform 0.05s ease;
   }
   
   .genre-item:hover {

@@ -9,7 +9,7 @@ function Header({ setSearchResults }) {
     e.preventDefault(); // Prevent page refresh
     if (!searchQuery) return;  
     try {
-      const response = await axios.get("http://localhost:3000/searchSongs", {
+      const response = await axios.get(`http://localhost:3035/searchSongs`, {
         params: { searchQuery }
       });
     
