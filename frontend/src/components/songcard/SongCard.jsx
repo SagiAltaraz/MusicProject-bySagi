@@ -3,63 +3,87 @@ import './SongCard.css';
 import { FaPlay, FaDownload } from 'react-icons/fa';
 
 function SongCard({ song, onPlayTrack }) {
-  if (!song || !song.snippet || !song.snippet.thumbnails) {
-    return (
-      <div className="error-container">
-        <div className="error">Invalid song data</div>
-      </div>
-    );
+  const [isDownloading, setIsDownloading] = React.useState(false);
+
+  if (!song?.snippet?.thumbnails || !song.id?.videoId) {
+    return null;
   }
 
-  const thumbnailUrl =
-    song.snippet.thumbnails.maxres?.url ||
-    song.snippet.thumbnails.high?.url ||
-    song.snippet.thumbnails.medium?.url ||
-    song.snippet.thumbnails.default?.url;
+  const rawTitle = song.snippet.title || 'Unknown Song';
+  const rawChannel = song.snippet.channelTitle || 'Unknown Artist';
 
-  const videoUrl = song.id?.videoId
-    ? `https://www.youtube.com/watch?v=${song.id.videoId}`
-    : "#";
+  // CLEAN CHANNEL: Remove " - Topic", "VEVO", etc.
+  const cleanChannel = rawChannel
+    .replace(/ - Topic$/i, '')
+    .replace(/ \(Official\)$/i, '')
+    .replace(/ VEVO$/i, '')
+    .replace(/ - [A-Z0-9]{10,}$/i, '') // removes upload codes
+    .trim();
 
-  const handleDownload = () => {
-    const videoId = song.id.videoId;
-    const title = song.snippet.title;
-    if (!videoId) {
-      console.error("No video ID available for download");
-      return;
+  // CLEAN TITLE: Extract real title if it contains " - " (Artist - Title format)
+  let artist = cleanChannel;
+  let title = rawTitle;
+
+  if (rawTitle.includes(' - ')) {
+    const parts = rawTitle.split(' - ');
+    artist = parts[0].trim();
+    title = parts.slice(1).join(' - ').trim();
+  }
+
+  // Final safe filename
+  const safeFilename = `${artist} - ${title}.mp3`.replace(/[\/\\|*?"<>]/g, '');
+
+  const thumb = song.snippet.thumbnails.high?.url || song.snippet.thumbnails.default?.url;
+
+  const handleDownload = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+
+    const url = `/downloadSong?videoId=${song.id.videoId}&title=${encodeURIComponent(rawTitle)}`;
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error();
+
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = safeFilename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch {
+      alert('Download failed — server offline?');
+    } finally {
+      setIsDownloading(false);
     }
-
-    console.log("Starting download for:", videoId, "as", title);
-    const url = `http://localhost:3000/downloadSong?videoId=${encodeURIComponent(videoId)}&title=${encodeURIComponent(title)}`;
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handlePlay = () => {
-    onPlayTrack(song);
   };
 
   return (
     <div className="song-card">
       <div className="thumbnail-container">
-        <a href={videoUrl} target="_blank" rel="noopener noreferrer">
-          <img src={thumbnailUrl} alt={song.snippet.title} className="thumbnail" />
+        <a href={`https://www.youtube.com/watch?v=${song.id.videoId}`} target="_blank" rel="noopener noreferrer">
+          <img src={thumb} alt={rawTitle} className="thumbnail" loading="lazy" />
         </a>
       </div>
+
       <div className="song-card-info">
-        <h3 className="song-title">{song.snippet.title || "Unknown Title"}</h3>
-        <p className="channel-name">{song.snippet.channelTitle || "Unknown Channel"}</p>
+        <h3 className="song-title">{rawTitle}</h3>
+        <p className="channel-name">{cleanChannel}</p>
       </div>
+
       <div className="action-buttons">
-        <button className="play-button" aria-label="Play" onClick={handlePlay}>
+        <button onClick={() => onPlayTrack(song)} className="play-button" title="Play">
           <FaPlay />
         </button>
-        <button className="download-button" aria-label="Download" onClick={handleDownload}>
-          <FaDownload />
+
+        <button
+          onClick={handleDownload}
+          disabled={isDownloading}
+          className="download-button"
+          title={isDownloading ? "Downloading..." : "Download MP3"}
+          style={{ opacity: isDownloading ? 0.5 : 1 }}
+        >
+          {isDownloading ? 'Downloading' : <FaDownload />}
         </button>
       </div>
     </div>

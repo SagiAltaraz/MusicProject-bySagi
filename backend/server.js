@@ -1,25 +1,41 @@
 const express = require('express');
 const cors = require('cors');
-const webhook = require('./controllers/webhook');
-// const mongoose = require('mongoose');
+const path = require('path');
 const dotenv = require('dotenv');
-const Routes = require('./routes/Routes')
-const{Configuration, OpenAIApi} = require('openai');
+const Routes = require('./routes/Routes');
 
 dotenv.config();
+
 const app = express();
 
-app.use(cors({ origin: "http://localhost:5173" }));
+// Middleware
+app.use(cors({
+  origin: true,           // allows localhost + future domain
+  credentials: true
+}));
 app.use(express.json());
 
-app.use('/webhook', webhook);
-app.use(Routes);
+// API Routes
+app.use('/', Routes);  // all your /downloadSong, /searchSongs etc.
 
-const PORT = process.env.PORT || 3000;
+// Serve React build (Vite or CRA)
+const frontendPath = path.join(__dirname, '../frontend/dist'); // change to ../build if using CRA
+app.use(express.static(frontendPath));
+
+// Catch-all: serve React app for any non-API route
+app.get('*', (req, res) => {
+  // Don't interfere with API calls
+  if (req.path.startsWith('/downloadSong') || 
+      req.path.startsWith('/searchSongs') || 
+      req.path.includes('.')) {  // files like .js, .png etc.
+    return res.status(404).send();
+  }
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
+// Port only exists here — never seen again
+const PORT = process.env.PORT || 3035;
 
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    if (!process.env.YoutubeAPI || String(process.env.YoutubeAPI).trim().length === 0) {
-        console.warn("[WARN] YoutubeAPI key is not set. Create backend/.env with YoutubeAPI=YOUR_KEY");
-    }
+  console.log(`Server is running on → http://localhost:${PORT}`);
 });
