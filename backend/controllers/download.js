@@ -21,10 +21,9 @@ const downloadFromYoutube = async (req, res) => {
 
     const YTDLprocess = spawn("yt-dlp", [
         "-x",
-        "--audio-format",
-        "mp3",
-        "-o",
-        outputPath,
+        "--audio-format", "mp3",
+        "--audio-quality", "0",
+        "-o", outputPath,
         "--ffmpeg-location",
         "/opt/homebrew/bin/ffmpeg",
         `https://www.youtube.com/watch?v=${videoId}`,

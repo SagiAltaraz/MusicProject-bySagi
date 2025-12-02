@@ -46,15 +46,19 @@
 /* Play & Download buttons */
 .play-button,
 .download-button {
-    background: #1db954;
     border: none;
     padding: 12px 18px; /* Bigger buttons */
     border-radius: 8px;
     cursor: pointer;
     color: white;
     font-size: 16px;
-    transition: background 0.3s ease, transform 0.2s ease;
+    transition: background 0.3s ease, transform 0.2s ease, opacity 0.3s ease;
     margin: 8px;
+}
+
+/* Play button styles */
+.play-button {
+    background: #1db954;
 }
 
 .play-button:hover {
@@ -62,11 +66,41 @@
     transform: scale(1.05);
 }
 
+/* Download button styles */
 .download-button {
     background: #ff0000;
+    border: none;
+    padding: 12px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: white;
+    font-size: 16px;
+    transition: background-color 0.3s ease, opacity 0.3s ease, transform 0.2s ease;
+    margin: 8px;
 }
 
 .download-button:hover {
     background: #cc0000;
     transform: scale(1.05);
+}
+
+.downloading {
+    background-color: #999 !important;
+    opacity: 0.7;
+    cursor: wait;
+    pointer-events: none;
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+
+.download-success {
+    background-color: #2ecc71 !important; /* ירוק יפה */
+    color: white;
+    cursor: default;
 }
