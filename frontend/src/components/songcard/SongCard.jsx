@@ -30,7 +30,7 @@ function SongCard({ song, onPlayTrack }) {
     }
 
     console.log("Starting download for:", videoId, "as", title);
-    const url = `http://localhost:3000/downloadSong?videoId=${encodeURIComponent(videoId)}&title=${encodeURIComponent(title)}`;
+    const url = `http://localhost:3035/downloadSong?videoId=${encodeURIComponent(videoId)}&title=${encodeURIComponent(title)}`;
     const link = document.createElement("a");
     link.href = url;
     link.setAttribute("download", "");

@@ -9,7 +9,10 @@ const downloadFromYoutube = async (req, res) => {
         return res.status(400).json({error:"video Id is required"});
     }
 
-    const safeTitle = (title|| videoId ).replace(/[^a-zA-Z0-9\s-]/g, "").replace(/\s+/g, " ");
+    const safeTitle = (title|| videoId ).
+    replace(/[^a-zA-Z0-9\s-]/g, "").
+    replace(/\s+/g, " ")
+    .trim();
     const downloadFolder = path.join(os.homedir(), "Downloads");
     const outputPath = path.join(downloadFolder, `${safeTitle}.mp3`);
     
