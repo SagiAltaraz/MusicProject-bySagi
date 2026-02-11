@@ -1,9 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-// const mongoose = require('mongoose');
 const dotenv = require('dotenv');
-const Routes = require('./routes/Routes')
-const{Configuration, OpenAIApi} = require('openai');
+const Routes = require('./routes/Routes');
 
 dotenv.config();
 const app = express();

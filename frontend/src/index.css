@@ -1,9 +1,74 @@
+@import "tailwindcss";
+
+/* DJ Platform Theme */
+@theme {
+  --color-bg-primary: #0a0a0a;
+  --color-bg-secondary: #141414;
+  --color-bg-card: #1c1c1c;
+  --color-bg-hover: #2a2a2a;
+  --color-bg-input: #1a1a1a;
+
+  --color-accent: #ff6b35;
+  --color-accent-hover: #ff8c5a;
+  --color-accent-glow: #ff6b354d;
+  --color-neon: #00d4ff;
+  --color-neon-glow: #00d4ff4d;
+  --color-success: #2ecc71;
+  --color-danger: #ff4757;
+
+  --color-text-primary: #f0f0f0;
+  --color-text-secondary: #999999;
+  --color-text-muted: #5a5a5a;
+
+  --color-border: #2a2a2a;
+  --color-border-light: #3a3a3a;
+
+  /* Override Tailwind's default container widths */
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 640px;
+  --container-2xl: 900px;
+  --container-3xl: 1024px;
+  --container-4xl: 1152px;
+  --container-5xl: 1280px;
+  --container-6xl: 1400px;
+  --container-7xl: 1600px;
+}
+
+/* Global base styles */
 body {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
-  background-color:black;
-  color: #ffffff;
-  background-color: black;
+  font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  overflow: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-light);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+/* Utility animations */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px var(--color-accent-glow); }
+  50% { box-shadow: 0 0 20px var(--color-accent-glow), 0 0 40px var(--color-accent-glow); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

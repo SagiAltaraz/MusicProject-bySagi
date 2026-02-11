@@ -2,12 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { searchOnYouTube } = require('../controllers/searchsong');
 const { downloadFromYoutube } = require('../controllers/download');
-const {askFromGemini} = require('../controllers/chatassistant');
+const { askFromAI } = require('../controllers/chatassistant');
 
-router.get('/searchSongs' , searchOnYouTube);
-
+router.get('/searchSongs', searchOnYouTube);
 router.get('/downloadSong', downloadFromYoutube);
-
-router.post('/askAI', askFromGemini);
+router.post('/askAI', askFromAI);
 
 module.exports = router;

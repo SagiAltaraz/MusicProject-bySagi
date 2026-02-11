@@ -1,29 +1,27 @@
-import { useState } from 'react';
-import './App.css';
-import HomePage from './components/home/HomePage';
+import { Routes, Route } from 'react-router-dom';
 import Header from './components/header/Header';
-import ChatAssistant from './components/chatassistant/ChatAssistant';
-import Library from './components/Library/Library';
+import Sidebar from './components/sidebar/Sidebar';
 import TrackPlayer from './components/trackplayer/TrackPlayer';
-import './index.css';
+import ChatAssistant from './components/chatassistant/ChatAssistant';
+import HomePage from './pages/HomePage';
+import CratesPage from './pages/CratesPage';
 
 function App() {
-  const [searchResults, setSearchResults] = useState([]);
-  const [currentTrack, setCurrentTrack] = useState(null);
-
-  const handlePlayTrack = (track) => {
-    setCurrentTrack(track);
-  };
-
   return (
-    <div className="app-container">
-      <Header setSearchResults={setSearchResults} />
-      <div className="main-content">
-        <Library setSearchResults={setSearchResults} />
-        <HomePage searchResults={searchResults} onPlayTrack={handlePlayTrack} />
+    <div className="flex flex-col h-screen bg-bg-primary overflow-hidden">
+      <Header />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto p-6 pb-4 bg-bg-primary">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/crates" element={<CratesPage />} />
+            <Route path="/crates/:crateId" element={<CratesPage />} />
+          </Routes>
+        </main>
       </div>
-      <TrackPlayer currentTrack={currentTrack} />
-      <ChatAssistant setSearchResults={setSearchResults} />
+      <TrackPlayer />
+      <ChatAssistant />
     </div>
   );
 }
