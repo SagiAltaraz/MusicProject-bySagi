@@ -8,10 +8,35 @@ function Header() {
   const { search, isLoading } = useSearchStore();
   const location = useLocation();
 
+<<<<<<< HEAD
   const handleSearch = (e) => {
     e.preventDefault();
     if (!input.trim()) return;
     search(input.trim());
+=======
+  const handleSearch = async (e) => {
+    e.preventDefault(); // Prevent page refresh
+    if (!searchQuery) return;  
+    try {
+      const response = await axios.get(`http://localhost:3035/searchSongs`, {
+        params: { searchQuery }
+      });
+    
+      if (response.data.items) {
+        setSearchResults(response.data.items);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearch(e);
+    }
+>>>>>>> main
   };
 
   return (

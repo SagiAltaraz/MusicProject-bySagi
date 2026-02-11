@@ -2,9 +2,16 @@ const path = require("path");
 const os = require("os");
 const { spawn } = require("child_process");
 
+<<<<<<< HEAD
 const downloadFromYoutube = async (req, res) => {
     const { videoId, title } = req.query;
 
+=======
+const downloadFromYoutube = (req, res) => {
+    const { videoId, title } = req.query;
+
+    // בדיקה בסיסית של videoId
+>>>>>>> main
     if (!videoId || !/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
         return res.status(400).json({ error: "Valid video ID is required" });
     }
@@ -35,7 +42,17 @@ const downloadFromYoutube = async (req, res) => {
     ytdlProcess.on("close", (code) => {
         if (code === 0) {
             console.log("Download completed", outputPath);
+<<<<<<< HEAD
             res.json({ success: true, message: "Download completed", path: outputPath });
+=======
+            // שולח את הקובץ מיד להורדה
+            res.download(outputPath, `${safeTitle}.mp3`, (err) => {
+                if (err) {
+                    console.error("Error sending file:", err);
+                    res.status(500).json({ error: "Download failed" });
+                }
+            });
+>>>>>>> main
         } else {
             res.status(500).json({ error: "Download failed" });
         }
