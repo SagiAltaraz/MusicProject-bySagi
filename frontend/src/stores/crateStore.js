@@ -1,82 +1,85 @@
 import { create } from 'zustand';
+import { load, save } from '../lib/storage';
 
-// Load crates from localStorage
-const loadCrates = () => {
-  try {
-    return JSON.parse(localStorage.getItem('dj-crates') || '[]');
-  } catch {
-    return [];
-  }
-};
+const idOf = (t) => t?.id?.videoId;
 
-const saveCrates = (crates) => {
-  localStorage.setItem('dj-crates', JSON.stringify(crates));
-};
+const useCrateStore = create((set, get) => {
+  // Every mutation persists
+  const commit = (crates) => {
+    save('dj-crates', crates);
+    set({ crates });
+  };
+  const mapCrate = (crateId, fn) => commit(get().crates.map((c) => (c.id === crateId ? fn(c) : c)));
 
-const useCrateStore = create((set, get) => ({
-  crates: loadCrates(),
+  return {
+    crates: load('dj-crates', []),
 
-  // Create a new crate
-  createCrate: (name) => {
-    const newCrate = {
-      id: Date.now().toString(),
-      name,
-      tracks: [],
-      createdAt: new Date().toISOString(),
-    };
-    const updated = [...get().crates, newCrate];
-    saveCrates(updated);
-    set({ crates: updated });
-    return newCrate;
-  },
+    createCrate: (name) => {
+      const crate = { id: Date.now().toString(), name, tracks: [], createdAt: new Date().toISOString() };
+      commit([...get().crates, crate]);
+      return crate;
+    },
 
-  // Delete a crate
-  deleteCrate: (crateId) => {
-    const updated = get().crates.filter((c) => c.id !== crateId);
-    saveCrates(updated);
-    set({ crates: updated });
-  },
+    /** Returns the deleted crate so the caller can offer Undo. */
+    deleteCrate: (crateId) => {
+      const crates = get().crates;
+      const index = crates.findIndex((c) => c.id === crateId);
+      commit(crates.filter((c) => c.id !== crateId));
+      return { crate: crates[index], index };
+    },
 
-  // Add track to a crate
-  addTrack: (crateId, track) => {
-    const updated = get().crates.map((crate) => {
-      if (crate.id !== crateId) return crate;
-      // Prevent duplicates
-      if (crate.tracks.some((t) => t.id?.videoId === track.id?.videoId)) return crate;
-      return { ...crate, tracks: [...crate.tracks, track] };
-    });
-    saveCrates(updated);
-    set({ crates: updated });
-  },
+    restoreCrate: ({ crate, index }) => {
+      const crates = [...get().crates];
+      crates.splice(index, 0, crate);
+      commit(crates);
+    },
 
-  // Remove track from a crate
-  removeTrack: (crateId, videoId) => {
-    const updated = get().crates.map((crate) => {
-      if (crate.id !== crateId) return crate;
-      return {
-        ...crate,
-        tracks: crate.tracks.filter((t) => t.id?.videoId !== videoId),
-      };
-    });
-    saveCrates(updated);
-    set({ crates: updated });
-  },
+    renameCrate: (crateId, name) => mapCrate(crateId, (c) => ({ ...c, name })),
 
-  // Rename a crate
-  renameCrate: (crateId, newName) => {
-    const updated = get().crates.map((crate) =>
-      crate.id === crateId ? { ...crate, name: newName } : crate
-    );
-    saveCrates(updated);
-    set({ crates: updated });
-  },
+    /** @returns {boolean} false if the track was already in the crate */
+    addTrack: (crateId, track) => {
+      const crate = get().crates.find((c) => c.id === crateId);
+      if (!crate || crate.tracks.some((t) => idOf(t) === idOf(track))) return false;
+      mapCrate(crateId, (c) => ({ ...c, tracks: [...c.tracks, track] }));
+      return true;
+    },
 
-  // Check if a track is in any crate
-  isTrackSaved: (videoId) => {
-    return get().crates.some((crate) =>
-      crate.tracks.some((t) => t.id?.videoId === videoId)
-    );
-  },
-}));
+    addTracks: (crateId, tracks) => {
+      let added = 0;
+      mapCrate(crateId, (c) => {
+        const ids = new Set(c.tracks.map(idOf));
+        const fresh = tracks.filter((t) => !ids.has(idOf(t)));
+        added = fresh.length;
+        return { ...c, tracks: [...c.tracks, ...fresh] };
+      });
+      return added;
+    },
+
+    /** Returns what was removed so it can be undone. */
+    removeTrack: (crateId, videoId) => {
+      const crate = get().crates.find((c) => c.id === crateId);
+      const index = crate?.tracks.findIndex((t) => idOf(t) === videoId) ?? -1;
+      if (index < 0) return null;
+      const track = crate.tracks[index];
+      mapCrate(crateId, (c) => ({ ...c, tracks: c.tracks.filter((t) => idOf(t) !== videoId) }));
+      return { crateId, track, index };
+    },
+
+    restoreTrack: ({ crateId, track, index }) => mapCrate(crateId, (c) => {
+      const tracks = [...c.tracks];
+      tracks.splice(index, 0, track);
+      return { ...c, tracks };
+    }),
+
+    moveTrack: (crateId, from, to) => mapCrate(crateId, (c) => {
+      const tracks = [...c.tracks];
+      const [moved] = tracks.splice(from, 1);
+      tracks.splice(to, 0, moved);
+      return { ...c, tracks };
+    }),
+
+    isTrackSaved: (videoId) => get().crates.some((c) => c.tracks.some((t) => idOf(t) === videoId)),
+  };
+});
 
 export default useCrateStore;

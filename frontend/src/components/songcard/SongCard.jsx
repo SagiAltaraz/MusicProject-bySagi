@@ -1,175 +1,80 @@
-import { useState } from 'react';
-import { FaPlay, FaDownload, FaSpinner, FaCheck, FaPlus } from 'react-icons/fa';
+import { FaPlay, FaPause } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import usePlayerStore from '../../stores/playerStore';
-import useCrateStore from '../../stores/crateStore';
-import useSettingsStore from '../../stores/settingsStore';
-import API_BASE_URL from '../../config/api';
+import useTrackMetaStore from '../../stores/trackMetaStore';
+import useTrackActions from '../../hooks/useTrackActions';
+import { trackFields, formatTime } from '../../lib/format';
+import { Badge, KeyBadge, QualityBadge } from '../ui/Badge';
+import DownloadButton from '../track/DownloadButton';
+import TrackMenu from '../track/TrackMenu';
 
-function decodeHtml(html) {
-  const txt = document.createElement('textarea');
-  txt.innerHTML = html;
-  return txt.value;
-}
+function SongCard({ song, onRemove }) {
+  const { videoId, title, channel, duration, thumbnail } = trackFields(song);
+  const actions = useTrackActions(song);
+  const isCurrent = usePlayerStore((s) => s.currentTrack?.id?.videoId === videoId);
+  const isPlaying = usePlayerStore((s) => s.isPlaying) && isCurrent;
+  const meta = useTrackMetaStore((s) => s.meta[videoId]);
+  const analyzing = useTrackMetaStore((s) => s.analyzing[videoId]);
 
-function SongCard({ song, showRemove, onRemove }) {
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadDone, setDownloadDone] = useState(false);
-  const [showCrateMenu, setShowCrateMenu] = useState(false);
+  if (!videoId || !thumbnail) return null;
+  const a = meta?.analysis;
 
-  const setTrack = usePlayerStore((s) => s.setTrack);
-  const { crates, addTrack, isTrackSaved } = useCrateStore();
-  const downloadFormat = useSettingsStore((s) => s.downloadFormat);
-
-  if (!song?.snippet?.thumbnails) return null;
-
-  const title = decodeHtml(song.snippet.title);
-  const channel = decodeHtml(song.snippet.channelTitle);
-  const videoId = song.id?.videoId;
-  const isSaved = isTrackSaved(videoId);
-
-  const thumbnailUrl =
-    song.snippet.thumbnails.high?.url ||
-    song.snippet.thumbnails.medium?.url ||
-    song.snippet.thumbnails.default?.url;
-
-  const handlePlay = () => setTrack(song);
-
-  const handleDownload = () => {
-    if (isDownloading || downloadDone) return;
-    setIsDownloading(true);
-
-    const rawChannel = channel.replace(/ - Topic$/i, '').trim();
-    let artist = rawChannel;
-    let trackTitle = title;
-
-    if (title.includes(' - ')) {
-      const parts = title.split(' - ');
-      artist = parts[0].trim();
-      trackTitle = parts.slice(1).join(' - ').trim();
-    }
-
-    const safeFilename = `${artist} - ${trackTitle}`.replace(/[/\\|*?"<>]/g, '').trim();
-    const url = `${API_BASE_URL}/downloadSong?videoId=${encodeURIComponent(videoId)}&title=${encodeURIComponent(safeFilename)}&format=${downloadFormat}`;
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${safeFilename}.${downloadFormat}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    setTimeout(() => {
-      setIsDownloading(false);
-      setDownloadDone(true);
-    }, 3000);
-  };
-
-  const handleAddToCrate = (crateId) => {
-    addTrack(crateId, song);
-    setShowCrateMenu(false);
+  const togglePlay = (e) => {
+    e.stopPropagation();
+    if (isCurrent) usePlayerStore.getState().togglePlay();
+    else actions.play();
   };
 
   return (
-    <motion.div
+    <motion.article
       layout
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="group relative bg-bg-card rounded-xl overflow-hidden border border-border hover:border-accent/40 transition-all duration-300 hover:shadow-[0_8px_30px_var(--color-accent-glow)]"
+      transition={{ duration: 0.25 }}
+      {...actions.dragProps}
+      onDoubleClick={actions.play}
+      className={`group relative bg-bg-card rounded-(--radius-card) border transition-all duration-300 hover:shadow-[0_8px_30px_var(--color-accent-glow)]
+        ${isCurrent ? 'border-accent/60' : 'border-border hover:border-accent/40'}`}
     >
-      {/* Thumbnail */}
-      <div className="relative aspect-video overflow-hidden">
-        <img
-          src={thumbnailUrl}
-          alt={title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-        {/* Play overlay */}
+      {/* Only the artwork clips - the card itself must not, or the ⋯ menu gets cut off */}
+      <div className="relative aspect-video overflow-hidden rounded-t-(--radius-card) bg-bg-hover">
+        <img src={thumbnail} alt="" loading="lazy" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
         <button
-          onClick={handlePlay}
-          className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-all duration-300 border-none cursor-pointer"
+          type="button"
+          onClick={togglePlay}
+          aria-label={isPlaying ? `Pause ${title}` : `Play ${title}`}
+          className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 focus-visible:bg-black/40 transition-all duration-300 border-none"
         >
-          <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 transition-all duration-300 shadow-lg shadow-accent/30">
-            <FaPlay className="text-white text-sm ml-0.5" />
-          </div>
-        </button>
-      </div>
-
-      {/* Info */}
-      <div className="p-3">
-        <h3
-          onClick={handlePlay}
-          title={`Play ${title}`}
-          className="text-sm font-medium text-text-primary line-clamp-2 leading-snug mb-1 cursor-pointer hover:text-accent transition-colors"
-        >
-          {title}
-        </h3>
-        <p className="text-xs text-text-secondary truncate mb-3">{channel}</p>
-
-        {/* Action buttons */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleDownload}
-            disabled={isDownloading}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 border-none cursor-pointer
-              ${downloadDone
-                ? 'bg-success/20 text-success'
-                : isDownloading
-                  ? 'bg-bg-hover text-text-muted cursor-wait'
-                  : 'bg-bg-hover text-text-secondary hover:bg-accent hover:text-white'
-              }`}
+          <span className={`w-12 h-12 rounded-full bg-accent flex items-center justify-center shadow-lg shadow-accent/30 transition-all duration-300
+            ${isCurrent ? 'opacity-100 scale-100' : 'opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100'}`}
           >
-            {downloadDone ? <FaCheck /> : isDownloading ? <FaSpinner className="animate-spin" /> : <FaDownload />}
-            {downloadDone ? 'Done' : isDownloading ? 'Downloading...' : 'Download'}
-          </button>
-
-          {/* Add to Crate */}
-          <div className="relative">
-            <button
-              onClick={() => setShowCrateMenu(!showCrateMenu)}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200 border-none cursor-pointer text-xs
-                ${isSaved
-                  ? 'bg-neon/20 text-neon'
-                  : 'bg-bg-hover text-text-muted hover:text-neon hover:bg-neon/10'
-                }`}
-              title="Add to Crate"
-            >
-              <FaPlus />
-            </button>
-
-            {showCrateMenu && (
-              <div className="absolute bottom-full right-0 mb-2 w-44 bg-bg-secondary border border-border rounded-lg shadow-xl z-50 py-1 animate-[slide-up_0.15s_ease-out]">
-                {crates.length === 0 ? (
-                  <div className="px-3 py-2 text-xs text-text-muted">No crates yet</div>
-                ) : (
-                  crates.map((crate) => (
-                    <button
-                      key={crate.id}
-                      onClick={() => handleAddToCrate(crate.id)}
-                      className="w-full text-left px-3 py-2 text-xs text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors bg-transparent border-none cursor-pointer"
-                    >
-                      {crate.name}
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Remove button (for crate view) */}
-          {showRemove && (
-            <button
-              onClick={onRemove}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-bg-hover text-danger/70 hover:bg-danger/20 hover:text-danger transition-all duration-200 border-none cursor-pointer text-xs"
-              title="Remove from Crate"
-            >
-              &times;
-            </button>
-          )}
+            {isPlaying ? <FaPause className="text-white text-sm" /> : <FaPlay className="text-white text-sm ml-0.5" />}
+          </span>
+        </button>
+        {duration > 0 && (
+          <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/75 text-[11px] font-medium text-white tabular">{formatTime(duration)}</span>
+        )}
+        <div className="absolute top-2 left-2 flex gap-1">
+          {a?.bpm && <Badge className="bg-black/75! text-white!">{Math.round(a.bpm)} BPM</Badge>}
+          {a?.camelot && <KeyBadge camelot={a.camelot} keyName={a.key} confidence={a.keyConfidence} />}
+          {analyzing && <Badge className="bg-black/75! text-white!">Analysing…</Badge>}
         </div>
       </div>
-    </motion.div>
+
+      <div className="p-3">
+        <button type="button" onClick={actions.openDetail} className="block w-full text-left bg-transparent border-none p-0">
+          <h3 className="text-sm font-medium text-text-primary line-clamp-2 leading-snug mb-1 hover:text-accent transition-colors">{title}</h3>
+        </button>
+        <div className="flex items-center gap-2 mb-3">
+          <p className="text-xs text-text-secondary truncate flex-1">{channel}</p>
+          <QualityBadge grade={meta?.source?.grade} />
+        </div>
+        <div className="flex items-center gap-2">
+          <DownloadButton song={song} />
+          <TrackMenu song={song} onRemove={onRemove} side="top" />
+        </div>
+      </div>
+    </motion.article>
   );
 }
 

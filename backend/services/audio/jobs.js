@@ -18,6 +18,8 @@ const { analyze } = require("./analyze");
 const queue = new PQueue({ concurrency: env.DOWNLOAD_CONCURRENCY });
 // Finished jobs stay listable for a while so the UI can show history after a reload
 const jobs = new LRUCache({ max: 200, ttl: 6 * 60 * 60 * 1000 });
+// BPM/key/loudness per video, so re-analysing or downloading again is instant
+const analysisCache = new LRUCache({ max: 2000 });
 
 // Weight of each stage in the overall progress bar
 const STAGES = { queued: [0, 0], downloading: [0, 0.6], analysing: [0.6, 0.75], converting: [0.75, 0.98], done: [1, 1] };
@@ -34,6 +36,7 @@ const publicView = (job) => ({
     id: job.id,
     videoId: job.videoId,
     profile: job.profile,
+    analyzeOnly: job.analyzeOnly,
     status: job.status,
     stage: job.stage,
     progress: Math.round(job.progress * 1000) / 1000,
@@ -95,7 +98,12 @@ const runJob = async (job) => {
         });
 
         const duration = sourceFacts.duration || info.duration;
-        const analysis = await analyze(sourcePath, duration, signal);
+        const analysis = analysisCache.get(job.videoId) || await analyze(sourcePath, duration, signal);
+        analysisCache.set(job.videoId, analysis);
+        if (job.analyzeOnly) {
+            update(job, { analysis, status: "done", stage: "done", progress: 1, finishedAt: Date.now() });
+            return;
+        }
         update(job, { analysis, stage: "converting" });
 
         const year = (info.release_year || info.upload_date?.slice(0, 4)) ?? undefined;
@@ -169,11 +177,16 @@ const runJob = async (job) => {
     }
 };
 
-const createJob = ({ videoId, profile }) => {
+/**
+ * @param {{videoId: string, profile?: string, analyzeOnly?: boolean}} opts
+ *   analyzeOnly fetches the source, measures BPM/key/loudness and keeps no file
+ */
+const createJob = ({ videoId, profile = "aiff", analyzeOnly = false }) => {
     const job = {
         id: crypto.randomUUID(),
         videoId,
         profile,
+        analyzeOnly,
         status: "queued",
         stage: "queued",
         progress: 0,
@@ -206,8 +219,13 @@ const cancelJob = (id) => {
     return job;
 };
 
-const listJobs = () => [...jobs.values()].sort((a, b) => b.createdAt - a.createdAt).map(publicView);
+const listJobs = () => [...jobs.values()]
+    .filter((j) => !j.analyzeOnly)
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .map(publicView);
+
+const getCachedAnalysis = (videoId) => analysisCache.get(videoId) || null;
 
 const isFinished = (job) => ["done", "error", "cancelled"].includes(job.status);
 
-module.exports = { createJob, getJob, cancelJob, listJobs, publicView, isFinished };
+module.exports = { createJob, getJob, cancelJob, listJobs, publicView, isFinished, getCachedAnalysis };

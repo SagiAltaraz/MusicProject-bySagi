@@ -35,6 +35,14 @@ const createDownload = (req, res) => {
     res.status(202).json(jobs.publicView(job));
 };
 
+// BPM/key/loudness without keeping a file. Cached results return immediately.
+const analyzeTrack = (req, res) => {
+    const cached = jobs.getCachedAnalysis(req.valid.videoId);
+    if (cached) return res.json({ videoId: req.valid.videoId, status: "done", analysis: cached });
+    const job = jobs.createJob({ videoId: req.valid.videoId, analyzeOnly: true });
+    res.status(202).json(jobs.publicView(job));
+};
+
 const listDownloads = (req, res) => res.json({ downloads: jobs.listJobs() });
 
 const getDownload = (req, res) => res.json(jobs.publicView(jobs.getJob(req.params.id)));
@@ -106,7 +114,7 @@ const legacyDownload = (req, res, next) => {
 };
 
 module.exports = {
-    listProfiles, trackInfo, createDownload, listDownloads, getDownload, downloadEvents,
+    listProfiles, trackInfo, analyzeTrack, createDownload, listDownloads, getDownload, downloadEvents,
     downloadFile, cancelDownload, revealDownload, legacyDownload,
     trackInfoSchema, createSchema, legacySchema,
 };

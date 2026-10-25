@@ -28,6 +28,7 @@ router.post("/askAI/clear", validate(clearSchema, "body"), clear);
 
 router.get("/profiles", dl.listProfiles);
 router.get("/trackInfo", validate(dl.trackInfoSchema), dl.trackInfo);
+router.post("/analyze", limits.downloads, validate(dl.trackInfoSchema, "body"), dl.analyzeTrack);
 
 router.post("/downloads", limits.downloads, validate(dl.createSchema, "body"), dl.createDownload);
 router.get("/downloads", dl.listDownloads);

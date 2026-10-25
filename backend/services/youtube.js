@@ -4,6 +4,7 @@ const env = require("../config/env");
 const AppError = require("../utils/AppError");
 
 const API = "https://www.googleapis.com/youtube/v3";
+const MIN_DURATION_SECONDS = 60;
 
 // search.list costs 100 of the 10,000 daily quota units (~100 searches/day),
 // so identical searches are served from memory for a few hours.
@@ -33,6 +34,7 @@ const toAppError = (err) => {
 /**
  * Search YouTube videos and attach durationSeconds to each item.
  * @param {{query: string, genre?: string, maxDuration: number}} opts maxDuration in seconds, 0 = no limit
+ * @returns {Promise<{items: object[], hiddenLong: number}>}
  */
 const searchVideos = async ({ query, genre, maxDuration }) => {
     if (!env.YOUTUBE_API_KEY) {
@@ -50,7 +52,7 @@ const searchVideos = async ({ query, genre, maxDuration }) => {
             timeout: 10000,
         });
         const items = search.items || [];
-        if (items.length === 0) return [];
+        if (items.length === 0) return { items: [], hiddenLong: 0 };
 
         // One batch call for every duration
         const { data: details } = await axios.get(`${API}/videos`, {
@@ -59,14 +61,18 @@ const searchVideos = async ({ query, genre, maxDuration }) => {
         });
         const durations = new Map(details.items.map((v) => [v.id, parseDuration(v.contentDetails.duration)]));
 
-        const results = items
+        const playable = items
             // Live/upcoming streams can't be downloaded as a finished track
             .filter((item) => item.snippet.liveBroadcastContent === "none")
             .map((item) => ({ ...item, durationSeconds: durations.get(item.id.videoId) || 0 }))
-            .filter((item) => !maxDuration || item.durationSeconds <= maxDuration);
+            // Under a minute is a Short or a teaser, never a playable track
+            .filter((item) => item.durationSeconds >= MIN_DURATION_SECONDS);
+        const results = playable.filter((item) => !maxDuration || item.durationSeconds <= maxDuration);
 
-        searchCache.set(cacheKey, results);
-        return results;
+        // The UI tells the user how many longer videos (DJ sets, mixes) were hidden
+        const result = { items: results, hiddenLong: playable.length - results.length };
+        searchCache.set(cacheKey, result);
+        return result;
     } catch (err) {
         throw err instanceof AppError ? err : toAppError(err);
     }

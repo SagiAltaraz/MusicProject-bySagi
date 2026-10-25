@@ -15,8 +15,7 @@ const suggestSchema = z.object({
 const search = async (req, res, next) => {
     try {
         const { searchQuery, genre, maxDuration } = req.valid;
-        const items = await searchVideos({ query: searchQuery, genre, maxDuration });
-        res.json({ items });
+        res.json(await searchVideos({ query: searchQuery, genre, maxDuration }));
     } catch (err) {
         next(err);
     }
