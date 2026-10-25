@@ -1,6 +1,10 @@
 // Shared formatting helpers
 
+const ENTITIES = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&#039;': "'" };
+
+/** YouTube API titles arrive HTML-escaped ("Rock &amp; Roll"). */
 export function decodeHtml(html = '') {
+  if (typeof document === 'undefined') return html.replace(/&(amp|lt|gt|quot|#0?39);/g, (m) => ENTITIES[m]);
   const txt = document.createElement('textarea');
   txt.innerHTML = html;
   return txt.value;

@@ -22,7 +22,16 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": {
+        "default-src": "'self'",
+        "connect-src": "'self' ipc: http://ipc.localhost http://localhost:3035 http://127.0.0.1:3035",
+        "script-src": "'self' https://www.youtube.com https://s.ytimg.com",
+        "frame-src": "https://www.youtube.com https://www.youtube-nocookie.com",
+        "img-src": "'self' data: blob: https://i.ytimg.com https://*.ytimg.com https://yt3.ggpht.com",
+        "media-src": "'self' blob: http://localhost:3035 http://127.0.0.1:3035",
+        "style-src": "'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src": "'self' https://fonts.gstatic.com"
+      }
     }
   },
   "bundle": {

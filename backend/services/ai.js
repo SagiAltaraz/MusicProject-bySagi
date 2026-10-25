@@ -51,7 +51,7 @@ const streamChat = async ({ sessionId, prompt, signal, onToken }) => {
                 onToken(delta);
             }
         }
-    } catch (err) {
+    } catch {
         if (signal?.aborted) return reply;
         throw new AppError(502, "AI_UNAVAILABLE", "AI service unavailable. Please try again.");
     }

@@ -1,6 +1,8 @@
 // Filenames and artist/title parsing. Unicode (Hebrew, Arabic, accented Latin...)
 // is preserved - only characters illegal on macOS/Windows/Linux are removed.
 
+// Control characters are illegal in filenames on Windows and break shells elsewhere
+// eslint-disable-next-line no-control-regex
 const ILLEGAL = /[/\\:*?"<>|\u0000-\u001f\u007f]/g;
 const WINDOWS_RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)$/i;
 const MAX_LENGTH = 150;
