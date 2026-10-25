@@ -1,26 +1,37 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "MusicProject",
+  "productName": "DJ Crate",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.djcrate.app",
   "build": {
-    "frontendDist": "../dist",
+    "frontendDist": "../frontend/dist",
     "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "beforeDevCommand": "npm run dev --prefix frontend",
+    "beforeBuildCommand": "npm run build --prefix frontend"
   },
   "app": {
     "windows": [
       {
-        "title": "MusicProject",
-        "width": 800,
-        "height": 600,
+        "title": "DJ Crate",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
         "resizable": true,
         "fullscreen": false
       }
     ],
     "security": {
-      "csp": null
+      "csp": {
+        "default-src": "'self'",
+        "connect-src": "'self' ipc: http://ipc.localhost http://localhost:3035 http://127.0.0.1:3035",
+        "script-src": "'self' https://www.youtube.com https://s.ytimg.com",
+        "frame-src": "https://www.youtube.com https://www.youtube-nocookie.com",
+        "img-src": "'self' data: blob: https://i.ytimg.com https://*.ytimg.com https://yt3.ggpht.com",
+        "media-src": "'self' blob: http://localhost:3035 http://127.0.0.1:3035",
+        "style-src": "'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src": "'self' https://fonts.gstatic.com"
+      }
     }
   },
   "bundle": {
