@@ -2,41 +2,19 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FaSearch, FaCompactDisc } from 'react-icons/fa';
 import useSearchStore from '../../stores/searchStore';
+import useSettingsStore, { DOWNLOAD_FORMATS } from '../../stores/settingsStore';
 
 function Header() {
   const [input, setInput] = useState('');
   const { search, isLoading } = useSearchStore();
+  const { downloadFormat, setDownloadFormat } = useSettingsStore();
+  const formatHint = DOWNLOAD_FORMATS.find((f) => f.value === downloadFormat)?.hint;
   const location = useLocation();
 
-<<<<<<< HEAD
   const handleSearch = (e) => {
     e.preventDefault();
     if (!input.trim()) return;
     search(input.trim());
-=======
-  const handleSearch = async (e) => {
-    e.preventDefault(); // Prevent page refresh
-    if (!searchQuery) return;  
-    try {
-      const response = await axios.get(`http://localhost:3035/searchSongs`, {
-        params: { searchQuery }
-      });
-    
-      if (response.data.items) {
-        setSearchResults(response.data.items);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-  
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSearch(e);
-    }
->>>>>>> main
   };
 
   return (
@@ -90,8 +68,23 @@ function Header() {
         )}
       </form>
 
+      {/* Download format */}
+      <label className="flex items-center gap-2 ml-6 text-xs text-text-secondary" title={formatHint}>
+        <span className="uppercase tracking-wider font-semibold">Format</span>
+        <select
+          value={downloadFormat}
+          onChange={(e) => setDownloadFormat(e.target.value)}
+          aria-label="Download format"
+          className="px-3 py-2 bg-bg-input border border-border rounded-full text-sm text-text-primary outline-none cursor-pointer transition-all duration-200 focus:border-accent"
+        >
+          {DOWNLOAD_FORMATS.map((f) => (
+            <option key={f.value} value={f.value}>{f.label}</option>
+          ))}
+        </select>
+      </label>
+
       {/* User avatar */}
-      <div className="flex items-center gap-3 ml-6">
+      <div className="flex items-center gap-3 ml-4">
         <div className="w-8 h-8 rounded-full bg-linear-to-br from-accent to-neon flex items-center justify-center text-sm font-bold text-white">
           S
         </div>

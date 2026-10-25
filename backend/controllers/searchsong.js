@@ -1,6 +1,5 @@
 const axios = require('axios');
 
-<<<<<<< HEAD
 const MAX_DURATION_SECONDS = 600; // 10 minutes
 
 // Parse ISO 8601 duration (PT4M30S) to seconds
@@ -11,11 +10,12 @@ function parseDuration(iso) {
     const minutes = parseInt(match[2] || 0);
     const seconds = parseInt(match[3] || 0);
     return hours * 3600 + minutes * 60 + seconds;
-=======
-const searchOnYouTube = async function (req,res) {
-    const {searchQuery, genre} = req.query;
-    if(!searchQuery){
-        return res.status(400).json({error: "Search query is required"});
+}
+
+const searchOnYouTube = async function (req, res) {
+    const { searchQuery, genre } = req.query;
+    if (!searchQuery) {
+        return res.status(400).json({ error: "Search query is required" });
     }
 
     if (!process.env.YoutubeAPI || String(process.env.YoutubeAPI).trim().length === 0) {
@@ -27,31 +27,9 @@ const searchOnYouTube = async function (req,res) {
         ? `${genre} ${searchQuery}`
         : searchQuery;
 
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(finalQuery)}&type=video&maxResults=30&key=${process.env.YoutubeAPI}`;
-    
-    try{
-        const response = await axios.get(url);
-        res.json(response.data);
-    }catch(err){
-        console.error(err);
-        const status = err.response?.status;
-        if (status === 403 || status === 400) {
-            return res.status(status).json({ error: "YouTube API error. Check API key and quota." });
-        }
-        res.status(500).json({error: "An error occurred while searching"});
-    }
->>>>>>> main
-}
-
-const searchOnYouTube = async function (req, res) {
-    const { searchQuery } = req.query;
-    if (!searchQuery) {
-        return res.status(400).json({ error: "Search query is required" });
-    }
-
     try {
         // Step 1: Search for videos
-        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(searchQuery)}&type=video&maxResults=40&key=${process.env.YoutubeAPI}`;
+        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(finalQuery)}&type=video&maxResults=40&key=${process.env.YoutubeAPI}`;
         const searchResponse = await axios.get(searchUrl);
         const items = searchResponse.data.items || [];
 
@@ -79,6 +57,10 @@ const searchOnYouTube = async function (req, res) {
         res.json({ items: filtered });
     } catch (err) {
         console.error("Search error:", err.message);
+        const status = err.response?.status;
+        if (status === 403 || status === 400) {
+            return res.status(status).json({ error: "YouTube API error. Check API key and quota." });
+        }
         res.status(500).json({ error: "An error occurred while searching" });
     }
 };

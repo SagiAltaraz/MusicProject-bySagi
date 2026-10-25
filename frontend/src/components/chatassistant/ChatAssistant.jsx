@@ -28,24 +28,11 @@ const ChatAssistant = () => {
     setIsLoading(true);
 
     try {
-<<<<<<< HEAD
       const response = await axios.post(`${API_BASE_URL}/askAI`, { prompt: userText });
       const aiText = response.data.response;
       setMessages((prev) => [...prev, { sender: 'ai', text: aiText }]);
     } catch {
       setMessages((prev) => [
-=======
-      const response = await axios.post('http://localhost:3035/askAI', 
-        { prompt: input }, 
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      const result = response.data.response;
-      setMessages(prev => [...prev, { sender: 'ai', text: result }]);
-      setLastAIResponse(result);
-    } catch (error) {
-      console.error('Error with AI API:', error);
-      setMessages(prev => [
->>>>>>> main
         ...prev,
         { sender: 'ai', text: 'Sorry, something went wrong. Please try again.' },
       ]);
@@ -54,51 +41,9 @@ const ChatAssistant = () => {
     }
   };
 
-<<<<<<< HEAD
   const handleSearchFromMessage = (text) => {
     search(text);
     setIsOpen(false);
-=======
-  const handleSearchFromPrompt = async () => {
-    if (!lastPrompt.trim()) {
-      setMessages(prev => [
-        ...prev,
-        { sender: 'ai', text: 'No prompt to search from. Please enter a message first.' }
-      ]);
-      return;
-    }
-  
-    setIsLoading(true);
-    try {
-      const searchQuery = lastPrompt; // just use the prompt directly
-  
-      const response = await axios.get('http://localhost:3035/searchSongs', { 
-        params: { searchQuery }
-      });
-  
-      const results = response.data.items || [];
-      if (results.length > 0) {
-        setSearchResults(results);
-        setMessages(prev => [
-          ...prev,
-          { sender: 'ai', text: 'Search songs!' }
-        ]);
-      } else {
-        setMessages(prev => [
-          ...prev,
-          { sender: 'ai', text: 'No results found!' }
-        ]);
-      }
-    } catch (error) {
-      console.error('Error during YouTube search:', error);
-      setMessages(prev => [
-        ...prev,
-        { sender: 'ai', text: "Sorry, I couldn't perform the search." }
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
->>>>>>> main
   };
 
   return (

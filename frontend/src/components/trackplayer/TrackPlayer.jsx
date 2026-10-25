@@ -39,13 +39,14 @@ const TrackPlayer = () => {
       videoId: currentTrack.id?.videoId || '',
       height: '0',
       width: '0',
-      playerVars: { autoplay: 0, controls: 0, enablejsapi: 1, origin: window.location.origin },
+      playerVars: { autoplay: 1, controls: 0, enablejsapi: 1, origin: window.location.origin },
       events: {
         onReady: (e) => {
           setDuration(e.target.getDuration());
           e.target.setVolume(volume);
-          setPlaying(false);
           setProgress(0);
+          // Start playback immediately when a track is selected
+          e.target.playVideo();
         },
         onStateChange: (e) => {
           if (e.data === window.YT.PlayerState.PLAYING) {
