@@ -2,6 +2,7 @@ const OpenAI = require("openai");
 const { LRUCache } = require("lru-cache");
 const env = require("../config/env");
 const AppError = require("../utils/AppError");
+const logger = require("../utils/logger");
 
 const client = env.OPENAI_API_KEY ? new OpenAI({ apiKey: env.OPENAI_API_KEY }) : null;
 
@@ -51,8 +52,15 @@ const streamChat = async ({ sessionId, prompt, signal, onToken }) => {
                 onToken(delta);
             }
         }
-    } catch {
+    } catch (err) {
         if (signal?.aborted) return reply;
+        logger.warn({ status: err.status, code: err.code }, "OpenAI request failed");
+        if (err.status === 401) {
+            throw new AppError(502, "AI_KEY_INVALID", "OpenAI rejected the API key. Put a valid OPENAI_API_KEY in backend/.env and restart the server.");
+        }
+        if (err.status === 429) {
+            throw new AppError(429, "AI_QUOTA", "The OpenAI account is out of credit or rate-limited.");
+        }
         throw new AppError(502, "AI_UNAVAILABLE", "AI service unavailable. Please try again.");
     }
 
