@@ -1,176 +1,112 @@
+const { execFile } = require("child_process");
 const path = require("path");
-const os = require("os");
-const fs = require("fs");
-const { spawn } = require("child_process");
+const { z } = require("zod");
+const AppError = require("../utils/AppError");
+const { PROFILES } = require("../services/audio/profiles");
+const { probe } = require("../services/audio/ytdlp");
+const jobs = require("../services/audio/jobs");
 
-// Common install locations so yt-dlp/ffmpeg resolve even when the server is
-// launched from an IDE/GUI whose PATH is missing Homebrew / Python bin dirs.
-const EXTRA_BIN_DIRS = [
-    "/opt/homebrew/bin",
-    "/usr/local/bin",
-    "/Library/Frameworks/Python.framework/Versions/3.13/bin",
-    path.join(os.homedir(), ".local/bin"),
-];
+const videoId = z.string({ error: "Valid video ID is required" }).regex(/^[a-zA-Z0-9_-]{11}$/, "Valid video ID is required");
+const profile = z.enum(Object.keys(PROFILES), { error: `Format must be one of: ${Object.keys(PROFILES).join(", ")}` });
 
-const SPAWN_PATH = [...EXTRA_BIN_DIRS, process.env.PATH || ""].join(":");
+const trackInfoSchema = z.object({ videoId });
+const createSchema = z.object({ videoId, profile: profile.default("aiff") });
+// Older clients call /downloadSong?format=...; title is ignored now (metadata comes from YouTube)
+const legacySchema = z.object({ videoId, format: profile.default("mp3") });
 
-// Resolve ffmpeg location (yt-dlp needs it for the mp3 conversion)
-const FFMPEG_CANDIDATES = ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg"];
-const ffmpegPath = FFMPEG_CANDIDATES.find((p) => fs.existsSync(p));
-
-// yt-dlp needs a JavaScript runtime to solve YouTube's signature / "n" challenges,
-// and only deno is enabled by default. Without one, extraction silently degrades
-// to lower-quality formats (and needs the yt-dlp-ejs solver script installed).
-const JS_RUNTIME_CANDIDATES = [
-    ["deno", "/opt/homebrew/bin/deno"],
-    ["node", "/opt/homebrew/bin/node"],
-    ["node", "/usr/local/bin/node"],
-    ["bun", path.join(os.homedir(), ".bun/bin/bun")],
-];
-const jsRuntime = JS_RUNTIME_CANDIDATES.find(([, p]) => fs.existsSync(p));
-
-// YouTube gates every player client behind anti-bot checks: the web clients demand
-// a PO token ("Sign in to confirm you're not a bot"), tv/web_safari return DRM-only
-// formats, and the android_vr fallback serves URLs that reply 403 - the usual cause
-// of "yt-dlp exited with code 1". Real browser cookies are the supported way through.
-// Set YTDLP_COOKIES_BROWSER=none to disable, or to another browser (firefox, edge...).
-const cookiesBrowser = process.env.YTDLP_COOKIES_BROWSER || "chrome";
-
-// YouTube's best stream is Opus at 48kHz (float when decoded). DJ gear is safest at
-// 44.1kHz/16-bit, so lossless outputs are resampled once with soxr and TPDF-dithered.
-// No gain, compression or normalisation is applied - the audio itself is untouched.
-const PCM_ARGS = "ExtractAudio:-af aresample=44100:resampler=soxr:precision=28:osf=s16:dither_method=triangular";
-
-// Output profiles. WAV/AIFF are lossless containers: they stop any further loss
-// (no second lossy encode) but cannot add detail the YouTube source never had.
-const FORMATS = {
-    // CBR 320 (not "--audio-quality 0", which is VBR V0) for exact seeking on CDJs.
-    mp3: ["--audio-format", "mp3", "--audio-quality", "320K",
-        "--postprocessor-args", "ExtractAudio:-ar 44100",
-        "--embed-thumbnail", "--convert-thumbnails", "jpg"],
-    wav: ["--audio-format", "wav", "--postprocessor-args", PCM_ARGS],
-    // AIFF keeps ID3 tags that Rekordbox/Serato read; the best lossless choice for DJs.
-    // yt-dlp can't write AIFF, so it produces the WAV and toAiff() remuxes it.
-    aiff: ["--audio-format", "wav", "--postprocessor-args", PCM_ARGS],
-};
-
-// Bit-identical PCM (little- to big-endian), only the container and tags change.
-const toAiff = (wavPath, aiffPath, done) => {
-    const ffmpeg = spawn(ffmpegPath || "ffmpeg", [
-        "-v", "error", "-y", "-i", wavPath,
-        "-map_metadata", "0", "-c:a", "pcm_s16be", "-write_id3v2", "1",
-        aiffPath,
-    ], { env: { ...process.env, PATH: SPAWN_PATH } });
-    let stderr = "";
-    ffmpeg.stderr.on("data", (d) => { stderr += d; });
-    ffmpeg.on("error", (err) => done(err));
-    ffmpeg.on("close", (code) => {
-        fs.rm(wavPath, { force: true }, () => {});
-        done(code === 0 ? null : new Error(stderr.trim() || `ffmpeg exited with code ${code}`));
+const listProfiles = (req, res) => {
+    res.json({
+        profiles: Object.entries(PROFILES).map(([id, p]) => ({
+            id, label: p.label, ext: p.ext, lossless: p.lossless, hint: p.hint,
+        })),
     });
 };
 
-const downloadFromYoutube = (req, res) => {
-    const { videoId, title } = req.query;
-    const format = req.query.format || "mp3";
-
-    if (!videoId || !/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
-        return res.status(400).json({ error: "Valid video ID is required" });
+const trackInfo = async (req, res, next) => {
+    try {
+        res.json(await probe(req.valid.videoId));
+    } catch (err) {
+        next(err);
     }
-    if (!FORMATS[format]) {
-        return res.status(400).json({ error: `Format must be one of: ${Object.keys(FORMATS).join(", ")}` });
-    }
+};
 
-    // Strips non-ASCII, so a fully non-Latin title (Hebrew, etc.) sanitises to ""
-    // and would produce a hidden "~/Downloads/.mp3" - fall back to the video ID.
-    const safeTitle = (title || videoId)
-        .replace(/[^a-zA-Z0-9\s-]/g, "")
-        .replace(/\s+/g, " ")
-        .trim() || videoId;
+const createDownload = (req, res) => {
+    const job = jobs.createJob(req.valid);
+    res.status(202).json(jobs.publicView(job));
+};
 
-    const downloadFolder = path.join(os.homedir(), "Downloads");
-    const fileName = `${safeTitle}.${format}`;
-    const outputPath = path.join(downloadFolder, fileName);
+const listDownloads = (req, res) => res.json({ downloads: jobs.listJobs() });
 
-    // AIFF goes through an intermediate WAV; name it apart so an existing
-    // "<title>.wav" the user already downloaded isn't overwritten and deleted.
-    const baseName = format === "aiff" ? `${safeTitle}.aiff-tmp` : safeTitle;
+const getDownload = (req, res) => res.json(jobs.publicView(jobs.getJob(req.params.id)));
 
-    console.log("Downloading to", outputPath);
-
-    const args = [
-        "-x",
-        "-f", "bestaudio/best",
-        ...FORMATS[format],
-        "--embed-metadata",
-        // Let yt-dlp name the pre-conversion file; the final extension is the format.
-        "-o", path.join(downloadFolder, `${baseName}.%(ext)s`),
-    ];
-    if (ffmpegPath) {
-        args.push("--ffmpeg-location", ffmpegPath);
-    }
-    if (jsRuntime) {
-        const [name, runtimePath] = jsRuntime;
-        args.push("--js-runtimes", `${name}:${runtimePath}`);
-    }
-    if (cookiesBrowser !== "none") {
-        args.push("--cookies-from-browser", cookiesBrowser);
-    }
-    args.push(`https://www.youtube.com/watch?v=${videoId}`);
-
-    const ytdlProcess = spawn("yt-dlp", args, {
-        env: { ...process.env, PATH: SPAWN_PATH },
+// Server-Sent Events: the current state immediately, then every change until the job ends.
+const downloadEvents = (req, res) => {
+    const job = jobs.getJob(req.params.id);
+    res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
     });
+    const send = (state) => res.write(`event: update\ndata: ${JSON.stringify(state)}\n\n`);
+    send(jobs.publicView(job));
+    if (jobs.isFinished(job)) return res.end();
 
-    // Without this handler an ENOENT (yt-dlp not installed / not on PATH) is
-    // thrown as an unhandled 'error' event and crashes the whole server.
-    ytdlProcess.on("error", (err) => {
-        console.error("Failed to start yt-dlp:", err.message);
-        if (!res.headersSent) {
-            if (err.code === "ENOENT") {
-                return res.status(500).json({
-                    error: "yt-dlp not found. Install it (e.g. `brew install yt-dlp` or `pip install yt-dlp`) and make sure it's on the server's PATH.",
-                });
-            }
-            res.status(500).json({ error: "Failed to start download process" });
-        }
-    });
-
-    // Keep the last ERROR line so a failure reports *why*, not just the exit code.
-    let lastError = "";
-    ytdlProcess.stderr.on("data", (data) => {
-        const text = data.toString().trim();
-        console.error("yt-dlp:", text);
-        for (const line of text.split("\n")) {
-            if (line.startsWith("ERROR:")) lastError = line.replace(/^ERROR:\s*/, "");
-        }
-    });
-
-    ytdlProcess.on("close", (code) => {
-        if (res.headersSent) return; // an 'error' already responded
-        if (code === 0) {
-            console.log("Download completed", outputPath);
-            // Stream the file to the browser so the <a download> anchor saves it
-            const send = () => res.download(outputPath, fileName, (err) => {
-                if (err) {
-                    console.error("Error sending file:", err);
-                    if (!res.headersSent) res.status(500).json({ error: "Download failed" });
-                }
-            });
-            if (format !== "aiff") return send();
-            toAiff(path.join(downloadFolder, `${baseName}.wav`), outputPath, (err) => {
-                if (!err) return send();
-                console.error("AIFF conversion failed:", err.message);
-                res.status(500).json({ error: `AIFF conversion failed: ${err.message}` });
-            });
-        } else {
-            res.status(500).json({
-                error: lastError
-                    ? `Download failed: ${lastError}`
-                    : `Download failed (yt-dlp exited with code ${code})`,
-            });
-        }
+    const onUpdate = (state) => send(state);
+    const onEnd = () => {
+        send(jobs.publicView(job));
+        res.end();
+    };
+    // Keeps proxies and the browser from timing out an idle stream
+    const ping = setInterval(() => res.write(": ping\n\n"), 15000);
+    job.events.on("update", onUpdate);
+    job.events.once("end", onEnd);
+    res.on("close", () => {
+        clearInterval(ping);
+        job.events.off("update", onUpdate);
+        job.events.off("end", onEnd);
     });
 };
 
-module.exports = { downloadFromYoutube };
+const downloadFile = (req, res, next) => {
+    const job = jobs.getJob(req.params.id);
+    if (job.status !== "done") return next(new AppError(409, "NOT_READY", "This download hasn't finished yet."));
+    res.download(job.finalPath, path.basename(job.finalPath), (err) => {
+        if (err && !res.headersSent) next(new AppError(410, "FILE_GONE", "The file was moved or deleted."));
+    });
+};
+
+const cancelDownload = (req, res) => res.json(jobs.publicView(jobs.cancelJob(req.params.id)));
+
+// Show the finished file in Finder / Explorer. Only meaningful when the backend
+// runs on the DJ's own machine (the normal and Tauri setup).
+const revealDownload = (req, res, next) => {
+    const job = jobs.getJob(req.params.id);
+    if (job.status !== "done") return next(new AppError(409, "NOT_READY", "This download hasn't finished yet."));
+    const file = job.finalPath;
+    const [cmd, args] = process.platform === "darwin" ? ["open", ["-R", file]]
+        : process.platform === "win32" ? ["explorer.exe", [`/select,${file}`]]
+            : ["xdg-open", [path.dirname(file)]];
+    execFile(cmd, args, () => {});
+    res.json({ ok: true });
+};
+
+// Back-compat: run a job and stream the finished file in the same request.
+const legacyDownload = (req, res, next) => {
+    const job = jobs.createJob({ videoId: req.valid.videoId, profile: req.valid.format });
+    res.on("close", () => {
+        if (!res.writableFinished && !jobs.isFinished(job)) jobs.cancelJob(job.id);
+    });
+    job.events.once("end", () => {
+        if (res.destroyed) return;
+        if (job.status !== "done") {
+            return next(new AppError(502, job.error?.code || "DOWNLOAD_FAILED", job.error?.message || "Download failed"));
+        }
+        res.download(job.finalPath, path.basename(job.finalPath));
+    });
+};
+
+module.exports = {
+    listProfiles, trackInfo, createDownload, listDownloads, getDownload, downloadEvents,
+    downloadFile, cancelDownload, revealDownload, legacyDownload,
+    trackInfoSchema, createSchema, legacySchema,
+};
